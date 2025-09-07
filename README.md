@@ -1,73 +1,117 @@
-# Welcome to your Lovable project
+# PC Config Builder
 
-## Project info
+Uma aplicação web moderna para configuração e montagem de PCs, permitindo aos usuários selecionar componentes de hardware e obter recomendações personalizadas.
 
-**URL**: https://lovable.dev/projects/ed2b4050-d187-40ac-a90d-629e57d41395
+## 🚀 Funcionalidades
 
-## How can I edit this code?
+- **Seleção de Componentes**: Interface intuitiva para escolher processadores, placas de vídeo, placas-mãe e memória RAM
+- **Busca em Tempo Real**: Sistema de busca instantânea com filtros para encontrar componentes específicos
+- **Integração com Supabase**: Dados atualizados em tempo real diretamente do banco de dados
+- **Interface Responsiva**: Design moderno e adaptável para desktop e mobile
+- **Validação de Formulário**: Verificação automática de compatibilidade entre componentes
+- **Feedback Visual**: Indicadores de carregamento e estados de erro para melhor UX
 
-There are several ways of editing your application.
+## 🛠️ Tecnologias Utilizadas
 
-**Use Lovable**
+- **Frontend**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Banco de Dados**: Supabase
+- **Ícones**: Lucide React
+- **Gerenciamento de Estado**: React Hooks
+- **Validação**: Validação customizada de formulários
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ed2b4050-d187-40ac-a90d-629e57d41395) and start prompting.
+## 📋 Pré-requisitos
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (versão 16 ou superior)
+- npm ou yarn
+- Conta no Supabase
 
-**Use your preferred IDE**
+## ⚙️ Instalação
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone o repositório:
+```bash
+git clone <url-do-repositorio>
+cd pc-config-builder
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. Instale as dependências:
+```bash
+npm install
+```
 
-Follow these steps:
+3. Configure as variáveis de ambiente do Supabase:
+   - Edite o arquivo `src/config/supabase.ts`
+   - Adicione sua URL do projeto Supabase
+   - Adicione sua chave pública (anon key)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Execute o projeto em modo de desenvolvimento:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+5. Acesse a aplicação em `http://localhost:3000`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🗄️ Estrutura do Banco de Dados
 
-**Use GitHub Codespaces**
+O projeto utiliza as seguintes tabelas no Supabase:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Cpus**: Processadores disponíveis
+- **Video Cards**: Placas de vídeo
+- **Motherboards**: Placas-mãe
+- **Rams**: Módulos de memória RAM
 
-## What technologies are used for this project?
+Cada tabela deve conter pelo menos o campo `nome` (string).
 
-This project is built with:
+## 📁 Estrutura do Projeto
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+src/
+├── components/          # Componentes React
+│   ├── ui/             # Componentes de interface
+│   ├── PCConfigForm.tsx # Formulário principal
+│   └── HardwarePopup.tsx # Modal de hardware
+├── config/             # Configurações
+│   └── supabase.ts     # Configuração do Supabase
+├── services/           # Serviços e APIs
+│   └── hardware-api.ts # API de hardware
+├── types/              # Definições de tipos TypeScript
+│   └── hardware.ts     # Tipos de hardware
+├── hooks/              # Hooks customizados
+├── lib/                # Utilitários
+└── pages/              # Páginas da aplicação
+```
 
-## How can I deploy this project?
+## 🎯 Como Usar
 
-Simply open [Lovable](https://lovable.dev/projects/ed2b4050-d187-40ac-a90d-629e57d41395) and click on Share -> Publish.
+1. **Seleção de Componentes**: Use os dropdowns para selecionar cada componente do PC
+2. **Busca**: Digite no campo de busca para filtrar componentes específicos
+3. **Visualização**: Veja os componentes selecionados em tempo real
+4. **Configuração**: Complete a configuração e envie o formulário
 
-## Can I connect a custom domain to my Lovable project?
+## 🔧 Scripts Disponíveis
 
-Yes, you can!
+- `npm run dev` - Inicia o servidor de desenvolvimento
+- `npm run build` - Gera a build de produção
+- `npm run preview` - Visualiza a build de produção
+- `npm run lint` - Executa o linter
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🤝 Contribuição
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 📞 Suporte
+
+Para suporte ou dúvidas, abra uma issue no repositório do projeto.
+
+---
+
+**Desenvolvido com ❤️ para facilitar a montagem de PCs**
