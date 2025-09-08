@@ -71,21 +71,15 @@ function convertN8NDataToFrontendFormat(n8nData: N8NResponseData[], considerRevi
     message: "Configuração processada com sucesso"
   };
 
-  console.log('Converting N8N data:', n8nData);
-  console.log('Consider reviews:', considerReviews);
 
   // Processar cada categoria de hardware
   n8nData.forEach((categoryData, index) => {
-    console.log(`Processing category ${index}:`, categoryData);
     
     Object.entries(categoryData).forEach(([hardwareType, hardwareCategory]) => {
       if (hardwareCategory && (hardwareType === 'gpu' || hardwareType === 'cpu' || hardwareType === 'motherboard' || hardwareType === 'ram')) {
-        console.log(`Processing ${hardwareType}:`, hardwareCategory);
         
         // Escolher entre best_price ou best_score baseado em considerReviews
         const sourceArray = considerReviews ? hardwareCategory.best_score : hardwareCategory.best_price;
-        
-        console.log(`Using ${considerReviews ? 'best_score' : 'best_price'} for ${hardwareType}:`, sourceArray);
         
         // Verificar se sourceArray existe e é um array
         if (!sourceArray || !Array.isArray(sourceArray)) {
@@ -93,7 +87,6 @@ function convertN8NDataToFrontendFormat(n8nData: N8NResponseData[], considerRevi
           return;
         }
         
-        console.log(`Found ${sourceArray.length} items for ${hardwareType}`);
         
         const items: HardwareItem[] = sourceArray.map((item, index) => ({
           id: `${hardwareType}-${index}`,
@@ -117,12 +110,10 @@ function convertN8NDataToFrontendFormat(n8nData: N8NResponseData[], considerRevi
           totalItems: items.length
         };
         
-        console.log(`Converted ${hardwareType} items:`, items);
       }
     });
   });
 
-  console.log('Final result:', result);
   return result;
 }
 
@@ -132,7 +123,6 @@ export function convertRawDataToHardwareItems(
   hardwareType: 'gpu' | 'cpu' | 'motherboard' | 'ram', 
   considerReviews: boolean
 ): HardwareItem[] {
-  console.log('Converting raw data for:', hardwareType, 'considerReviews:', considerReviews);
   
   const items: HardwareItem[] = [];
   
@@ -142,7 +132,6 @@ export function convertRawDataToHardwareItems(
       const sourceArray = considerReviews ? hardwareCategory.best_score : hardwareCategory.best_price;
       
       if (sourceArray && Array.isArray(sourceArray)) {
-        console.log(`Found ${sourceArray.length} items for ${hardwareType}`);
         
         const convertedItems = sourceArray.map((item, index) => ({
           id: `${hardwareType}-${index}`,
@@ -164,7 +153,6 @@ export function convertRawDataToHardwareItems(
     }
   });
   
-  console.log(`Converted ${items.length} items for ${hardwareType}:`, items.map(item => item.name));
   return items;
 }
 
@@ -173,8 +161,6 @@ export async function sendPCConfigToN8N(payload: N8NPCConfigPayload): Promise<N8
   if (!url) {
     throw new Error("VITE_N8N_WEBHOOK_URL não configurada no .env");
   }
-
-  console.log('Sending payload to N8N:', payload);
 
   const response = await fetch(url, {
     method: "POST",
@@ -195,9 +181,6 @@ export async function sendPCConfigToN8N(payload: N8NPCConfigPayload): Promise<N8
 
   try {
     const rawData = await response.json();
-    console.log('Raw N8N Response:', rawData);
-    console.log('Type of response:', typeof rawData);
-    console.log('Is Array:', Array.isArray(rawData));
     
     // Tratar diferentes formatos de resposta
     let n8nData: N8NResponseData[];
@@ -216,7 +199,6 @@ export async function sendPCConfigToN8N(payload: N8NPCConfigPayload): Promise<N8
       throw new Error(`Formato de resposta inesperado do N8N: ${typeof rawData}`);
     }
     
-    console.log('Processed n8nData:', n8nData);
     
     // Converter para o formato esperado pelo frontend
     return convertN8NDataToFrontendFormat(n8nData, payload.considerReviews);

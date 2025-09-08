@@ -13,7 +13,8 @@ export const SUPABASE_CONFIG = {
     cpu: 'Cpus',
     gpu: 'Video Cards', 
     motherboard: 'Motherboards',
-    ram: 'Rams'
+    ram: 'Rams',
+    storage: 'Storages'
   }
 };
 
@@ -27,4 +28,16 @@ export const getSupabaseHeaders = () => ({
 // Função para construir URLs da API do Supabase
 export const buildSupabaseUrl = (table: string, select: string = '*') => {
   return `${SUPABASE_CONFIG.url}/rest/v1/${table}?select=${select}`;
+};
+
+// Configuração compatível com quick-search-api
+export const supabaseConfig = {
+  url: SUPABASE_CONFIG.url,
+  anonKey: SUPABASE_CONFIG.anonKey,
+  tables: SUPABASE_CONFIG.tables,
+  headers: getSupabaseHeaders(),
+  buildUrl: (tableName: keyof typeof SUPABASE_CONFIG.tables) => {
+    const table = SUPABASE_CONFIG.tables[tableName];
+    return buildSupabaseUrl(table);
+  }
 };
