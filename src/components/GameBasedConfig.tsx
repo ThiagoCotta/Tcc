@@ -5,9 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Gamepad2, Zap, Monitor, Cpu, MemoryStick } from 'lucide-react';
+import { Loader2, Gamepad2, Zap, Monitor, Cpu, MemoryStick, HardDrive, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendGameAIAssistance, GameAIAssistanceRequest } from '@/services/game-ai-assistance-api';
+import TypewriterEffect from './TypewriterEffect';
 
 interface GameBasedConfigProps {
   onConfigGenerated?: (config: any) => void;
@@ -17,7 +18,10 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
   const [game, setGame] = useState('');
   const [qualidade, setQualidade] = useState<'minimo' | 'recomendado' | 'alto-60fps' | 'alto-100fps'>('recomendado');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearchingPrices, setIsSearchingPrices] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [explanation, setExplanation] = useState('');
+  const [showExplanation, setShowExplanation] = useState(false);
   const { toast } = useToast();
 
   const qualidadeOptions = [
@@ -65,6 +69,8 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
 
     setIsLoading(true);
     setResult(null);
+    setExplanation('');
+    setShowExplanation(false);
 
     try {
       const request: GameAIAssistanceRequest = {
@@ -73,10 +79,44 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
       };
 
       const response = await sendGameAIAssistance(request);
+      console.log('Resposta completa da API:', response);
 
-      if (response.success && response.data) {
-        setResult(response.data);
-        onConfigGenerated?.(response.data);
+      if (response.success && response.data && response.data.length > 0) {
+        const configData = response.data[0];
+        console.log('Dados de configuração:', configData);
+        
+        // Separar componentes da explicação
+        const components = configData.data.filter((item: any) => item.component);
+        const explanationItem = configData.data.find((item: any) => item.Explicacao);
+        
+        console.log('Componentes filtrados:', components);
+        console.log('Item de explicação:', explanationItem);
+        
+        const processedData = {
+          components: components,
+          Explicacao: explanationItem?.Explicacao || ''
+        };
+        
+        console.log('Dados processados:', processedData);
+        setResult(processedData);
+        
+        // Mostrar explicação com efeito de digitação
+        if (processedData.Explicacao) {
+          setExplanation(processedData.Explicacao);
+          setShowExplanation(true);
+          
+          // Simular busca de preços após a explicação
+          setTimeout(() => {
+            setIsSearchingPrices(true);
+            // Aqui você pode chamar outro webhook para buscar preços
+            // Por enquanto, vamos simular um delay
+            setTimeout(() => {
+              setIsSearchingPrices(false);
+            }, 3000);
+          }, processedData.Explicacao.length * 30 + 2000); // Tempo baseado no tamanho da explicação
+        }
+        
+        onConfigGenerated?.(processedData);
         toast({
           title: "Configuração gerada!",
           description: `Configuração otimizada para ${game} criada com sucesso.`,
@@ -182,8 +222,57 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
         </CardContent>
       </Card>
 
+      {/* Explicação com efeito de digitação */}
+      {showExplanation && explanation && (
+        <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl text-purple-800 dark:text-purple-200">
+              <Sparkles className="w-6 h-6" />
+              Explicação da Configuração
+            </CardTitle>
+            <CardDescription className="text-purple-700 dark:text-purple-300">
+              Nossa IA explica por que escolheu cada componente para {game}
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="p-4 bg-white dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
+              <TypewriterEffect
+                text={explanation}
+                speed={30}
+                className="text-purple-800 dark:text-purple-200"
+                onComplete={() => {
+                  console.log('Explicação completa!');
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Busca de preços */}
+      {isSearchingPrices && (
+        <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200 dark:border-yellow-800">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-8 h-8 border-4 border-yellow-200 border-t-yellow-600 rounded-full animate-spin"></div>
+              </div>
+              <div>
+                <p className="text-base font-medium text-yellow-900 dark:text-yellow-100">
+                  Buscando melhores preços...
+                </p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Analisando ofertas em tempo real para sua configuração
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Resultado da configuração */}
-      {result && (
+      {result && result.components && (
         <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl text-green-800 dark:text-green-200">
@@ -191,65 +280,73 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
               Configuração Gerada para {game}
             </CardTitle>
             <CardDescription className="text-green-700 dark:text-green-300">
-              {result.reasoning}
+              Componentes selecionados pela IA para {qualidadeOptions.find(opt => opt.value === qualidade)?.label}
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-green-800 dark:text-green-200">
-                  Processador
-                </Label>
-                <div className="flex items-center gap-2 p-3 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                  <Cpu className="w-4 h-4 text-green-600" />
-                  <span className="font-medium">{result.suggestedComponents.cpu}</span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-green-800 dark:text-green-200">
-                  Placa de Vídeo
-                </Label>
-                <div className="flex items-center gap-2 p-3 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                  <Monitor className="w-4 h-4 text-green-600" />
-                  <span className="font-medium">{result.suggestedComponents.gpu}</span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-green-800 dark:text-green-200">
-                  Memória RAM
-                </Label>
-                <div className="flex items-center gap-2 p-3 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                  <MemoryStick className="w-4 h-4 text-green-600" />
-                  <span className="font-medium">{result.suggestedComponents.ram}</span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-green-800 dark:text-green-200">
-                  Placa Mãe
-                </Label>
-                <div className="flex items-center gap-2 p-3 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                  <Cpu className="w-4 h-4 text-green-600" />
-                  <span className="font-medium">{result.suggestedComponents.motherboard}</span>
-                </div>
-              </div>
+              {result.components.map((component: any, index: number) => {
+                const getComponentIcon = (componentType: string) => {
+                  switch (componentType) {
+                    case 'gpu':
+                      return <Monitor className="w-4 h-4 text-green-600" />;
+                    case 'cpu':
+                      return <Cpu className="w-4 h-4 text-green-600" />;
+                    case 'ram':
+                      return <MemoryStick className="w-4 h-4 text-green-600" />;
+                    case 'motherboard':
+                      return <HardDrive className="w-4 h-4 text-green-600" />;
+                    default:
+                      return <Cpu className="w-4 h-4 text-green-600" />;
+                  }
+                };
+
+                const getComponentName = (componentType: string) => {
+                  switch (componentType) {
+                    case 'gpu':
+                      return 'Placa de Vídeo';
+                    case 'cpu':
+                      return 'Processador';
+                    case 'ram':
+                      return 'Memória RAM';
+                    case 'motherboard':
+                      return 'Placa Mãe';
+                    default:
+                      return componentType;
+                  }
+                };
+
+                return (
+                  <div key={index} className="space-y-2">
+                    <Label className="text-sm font-medium text-green-800 dark:text-green-200">
+                      {getComponentName(component.component)}
+                    </Label>
+                    <div className="flex items-center gap-2 p-3 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                      {getComponentIcon(component.component)}
+                      <span className="font-medium">{component.name}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex items-center justify-between p-4 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
               <div>
                 <Label className="text-sm font-medium text-green-800 dark:text-green-200">
-                  Nível de Performance
+                  Qualidade Selecionada
                 </Label>
-                <p className="text-lg font-bold text-green-600">{result.performanceLevel}</p>
+                <p className="text-lg font-bold text-green-600">
+                  {qualidadeOptions.find(opt => opt.value === qualidade)?.label}
+                </p>
               </div>
               <div className="text-right">
                 <Label className="text-sm font-medium text-green-800 dark:text-green-200">
-                  Preço Estimado
+                  Status
                 </Label>
-                <p className="text-lg font-bold text-green-600">{result.estimatedPrice}</p>
+                <p className="text-lg font-bold text-green-600">
+                  {isSearchingPrices ? 'Buscando preços...' : 'Configuração pronta!'}
+                </p>
               </div>
             </div>
           </CardContent>

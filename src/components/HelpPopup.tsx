@@ -14,13 +14,6 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ children, onNavigate }) => {
 
   const helpOptions = [
     {
-      icon: Bot,
-      title: "Assistência da IA",
-      description: "Deixe nossa IA sugerir uma configuração completa baseada em suas necessidades",
-      action: "Ir para Ajuda da IA",
-      tabId: "ai-assistance"
-    },
-    {
       icon: Search,
       title: "Busca Rápida",
       description: "Encontre ofertas específicas para peças que você já tem em mente",
