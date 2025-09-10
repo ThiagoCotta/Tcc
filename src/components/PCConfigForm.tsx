@@ -4,13 +4,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Cpu, HardDrive, MemoryStick, Monitor, Search, Loader2 } from "lucide-react";
+import { Cpu, HardDrive, MemoryStick, Monitor, Search, Loader2, HelpCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sendPCConfigToN8N, N8NResponse, N8NResponseData } from "@/services/n8n";
 import HardwarePopup from "./HardwarePopup";
 import { HardwareSelect } from "@/components/ui/hardware-select";
 import { fetchHardwareList } from "@/services/hardware-api";
+import HelpPopup from "./HelpPopup";
+import { AISuggestedComponent } from "@/services/ai-assistance-api";
 
 interface PCConfig {
   gpu: string;
@@ -20,7 +22,11 @@ interface PCConfig {
   considerReviews?: boolean;
 }
 
-const PCConfigForm = () => {
+interface PCConfigFormProps {
+  onNavigate?: (tabId: string) => void;
+}
+
+const PCConfigForm: React.FC<PCConfigFormProps> = ({ onNavigate }) => {
   const [config, setConfig] = useState<PCConfig>({
     gpu: "",
     cpu: "",
@@ -38,6 +44,7 @@ const PCConfigForm = () => {
   const handleInputChange = (field: keyof PCConfig, value: string | boolean) => {
     setConfig(prev => ({ ...prev, [field]: value as any }));
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,16 +123,34 @@ const PCConfigForm = () => {
     <>
       <Card className="w-full max-w-6xl mx-auto bg-gradient-to-br from-card to-card/80 border-border/50 shadow-2xl">
       <CardHeader className="text-center space-y-4">
-        <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          Configurador de PC
-        </CardTitle>
-        <CardDescription className="text-lg text-muted-foreground">
-          Configure os componentes do seu PC ideal
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="flex-1"></div>
+          <div className="flex-1 text-center">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Configurador de PC
+            </CardTitle>
+            <CardDescription className="text-lg text-muted-foreground">
+              Configure os componentes do seu PC ideal
+            </CardDescription>
+          </div>
+          <div className="flex-1 flex justify-end">
+            <HelpPopup onNavigate={onNavigate}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Precisa de Ajuda?
+              </Button>
+            </HelpPopup>
+          </div>
+        </div>
       </CardHeader>
       
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        
+        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
             <div className="space-y-3">
               <Label htmlFor="gpu" className="flex items-center gap-2 text-sm font-medium">
