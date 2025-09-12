@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Gamepad2, Zap, Monitor, Cpu, MemoryStick, HardDrive, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendGameAIAssistance, GameAIAssistanceRequest } from '@/services/game-ai-assistance-api';
+import { sendBeginnerPriceSearch } from '@/services/n8n';
 import TypewriterEffect from './TypewriterEffect';
 
 interface GameBasedConfigProps {
@@ -81,13 +82,14 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
       const response = await sendGameAIAssistance(request);
       console.log('Resposta completa da API:', response);
 
-      if (response.success && response.data && response.data.length > 0) {
-        const configData = response.data[0];
+      if (response.success && response.data) {
+        const configData: any = Array.isArray(response.data) ? response.data[0] : response.data;
         console.log('Dados de configuração:', configData);
         
         // Separar componentes da explicação
-        const components = configData.data.filter((item: any) => item.component);
-        const explanationItem = configData.data.find((item: any) => item.Explicacao);
+        const itemsArray = Array.isArray(configData?.data) ? configData.data : [];
+        const components = itemsArray.filter((item: any) => item.component);
+        const explanationItem = itemsArray.find((item: any) => item.Explicacao);
         
         console.log('Componentes filtrados:', components);
         console.log('Item de explicação:', explanationItem);
@@ -98,22 +100,25 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
         };
         
         console.log('Dados processados:', processedData);
-        setResult(processedData);
+
+        // Iniciar busca de preços (iniciante) ANTES de exibir explicação
+        try {
+          setIsSearchingPrices(true);
+          const beginnerPayload = components.map((c: any) => ({ component: c.component, name: c.name }));
+          const priceResponse = await sendBeginnerPriceSearch(beginnerPayload);
+          // Atualiza resultado com retorno de preços (mesma interface usada no avançado quando implementado)
+          setResult({ ...processedData, priceData: priceResponse });
+        } catch (err) {
+          console.error('Erro ao buscar preços (iniciante):', err);
+          setResult(processedData);
+        } finally {
+          setIsSearchingPrices(false);
+        }
         
-        // Mostrar explicação com efeito de digitação
+        // Mostrar explicação com efeito de digitação enquanto preços são buscados em paralelo
         if (processedData.Explicacao) {
           setExplanation(processedData.Explicacao);
           setShowExplanation(true);
-          
-          // Simular busca de preços após a explicação
-          setTimeout(() => {
-            setIsSearchingPrices(true);
-            // Aqui você pode chamar outro webhook para buscar preços
-            // Por enquanto, vamos simular um delay
-            setTimeout(() => {
-              setIsSearchingPrices(false);
-            }, 3000);
-          }, processedData.Explicacao.length * 30 + 2000); // Tempo baseado no tamanho da explicação
         }
         
         onConfigGenerated?.(processedData);

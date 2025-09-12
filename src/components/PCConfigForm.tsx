@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Cpu, HardDrive, MemoryStick, Monitor, Search, Loader2, HelpCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { HistoryService } from "@/services/history";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sendPCConfigToN8N, N8NResponse, N8NResponseData } from "@/services/n8n";
 import HardwarePopup from "./HardwarePopup";
@@ -63,6 +64,20 @@ const PCConfigForm: React.FC<PCConfigFormProps> = ({ onNavigate }) => {
       if (response.success) {
         setHardwareData(response);
         setRawN8NData(response.rawData || null);
+        // Salvar no histórico
+        HistoryService.add({
+          source: 'pc-builder',
+          title: 'PC Builder - Busca de configuração',
+          subtitle: [config.cpu, config.gpu, config.motherboard, config.ram].filter(Boolean).join(' | '),
+          request: {
+            cpu: config.cpu,
+            gpu: config.gpu,
+            motherboard: config.motherboard,
+            ram: config.ram,
+            considerReviews: false,
+          },
+          response,
+        });
         toast({
           title: "Configuração enviada!",
           description: "Seus componentes foram processados com sucesso.",
@@ -72,6 +87,20 @@ const PCConfigForm: React.FC<PCConfigFormProps> = ({ onNavigate }) => {
       }
     } catch (error) {
       console.error("Erro ao enviar para N8N:", error);
+      // Registrar erro no histórico
+      HistoryService.add({
+        source: 'pc-builder',
+        title: 'Erro - PC Builder - Busca de configuração',
+        subtitle: [config.cpu, config.gpu, config.motherboard, config.ram].filter(Boolean).join(' | '),
+        request: {
+          cpu: config.cpu,
+          gpu: config.gpu,
+          motherboard: config.motherboard,
+          ram: config.ram,
+          considerReviews: false,
+        },
+        response: { error: error instanceof Error ? error.message : 'Erro desconhecido' },
+      });
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao enviar a configuração para o N8N.",

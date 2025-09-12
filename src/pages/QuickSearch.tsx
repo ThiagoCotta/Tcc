@@ -7,6 +7,7 @@ import { AllHardwareSelect } from '@/components/ui/all-hardware-select';
 import { getAllHardware, QuickSearchItem, sendToN8NWebhook, QuickSearchResults } from '@/services/quick-search-api';
 import { OfferResults } from '@/components/ui/offer-results';
 import { useToast } from '@/hooks/use-toast';
+import { HistoryService } from '@/services/history';
 
 const QuickSearch: React.FC = () => {
   const [selectedHardware, setSelectedHardware] = useState('');
@@ -69,11 +70,27 @@ const QuickSearch: React.FC = () => {
         // Armazenar resultados da busca
         if (webhookResult.data) {
           setSearchResults(webhookResult.data);
+          // Salvar no histórico
+          HistoryService.add({
+            source: 'quick-search',
+            title: `Busca Rápida: ${selected.name}`,
+            subtitle: `${selected.type}`,
+            request: { hardwareType: selected.type, hardwareName: selected.name },
+            response: webhookResult.data,
+          });
         } else {
           toast({
             title: "Aviso",
             description: "Busca realizada mas nenhuma oferta foi encontrada.",
             variant: "destructive",
+          });
+          // Ainda salvar o contexto da busca sem dados
+          HistoryService.add({
+            source: 'quick-search',
+            title: `Busca Rápida: ${selected.name}`,
+            subtitle: `${selected.type}`,
+            request: { hardwareType: selected.type, hardwareName: selected.name },
+            response: { message: 'Sem dados retornados' },
           });
         }
         setSelectedHardwareType(selected.type);
@@ -90,6 +107,14 @@ const QuickSearch: React.FC = () => {
         // Mesmo com erro, mostrar o hardware selecionado
         setFilteredHardware([selected]);
         setHasSearched(true);
+        // Registrar erro no histórico
+        HistoryService.add({
+          source: 'quick-search',
+          title: `Erro - Busca Rápida: ${selected.name}`,
+          subtitle: `${selected.type}`,
+          request: { hardwareType: selected.type, hardwareName: selected.name },
+          response: { error: webhookResult.error || 'Erro desconhecido' },
+        });
       }
     } catch (error) {
       console.error('Erro na busca de ofertas:', error);

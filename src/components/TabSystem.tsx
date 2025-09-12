@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { X, Plus, Wrench, Search, Bot, Settings } from 'lucide-react';
+import { X, Wrench, Search, Clock, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import PCBuilder from '@/pages/PCBuilder';
 import QuickSearch from '@/pages/QuickSearch';
+import History from '@/pages/History';
 
 export interface Tab {
   id: string;
@@ -31,6 +32,13 @@ const TabSystem: React.FC = () => {
       icon: Search,
       content: <QuickSearch />,
       closable: false
+    },
+    {
+      id: 'history',
+      label: 'Histórico',
+      icon: Clock,
+      content: <History />,
+      closable: false
     }
   ]);
 
@@ -46,11 +54,8 @@ const TabSystem: React.FC = () => {
     }
   };
 
-  const addNewTab = () => {
-    // Por enquanto, apenas alternar entre as abas existentes
-    // Futuramente pode ser expandido para adicionar novas abas dinamicamente
-    const nextTab = activeTab === 'pc-builder' ? 'quick-search' : 'pc-builder';
-    setActiveTab(nextTab);
+  const goToHistory = () => {
+    setActiveTab('history');
   };
 
   const handleNavigate = (tabId: string) => {
@@ -130,11 +135,12 @@ const TabSystem: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={addNewTab}
-                className="h-8 w-8 p-0"
-                title="Nova aba"
+                onClick={goToHistory}
+                className="h-8 px-2 py-0 flex items-center gap-2"
+                title="Histórico"
               >
-                <Plus className="w-4 h-4" />
+                <Clock className="w-4 h-4" />
+                <span className="hidden sm:inline text-sm">Histórico</span>
               </Button>
               
               <Button
@@ -145,9 +151,9 @@ const TabSystem: React.FC = () => {
                 title={isDark ? 'Modo Claro' : 'Modo Escuro'}
               >
                 {isDark ? (
-                  <Settings className="w-4 h-4" />
+                  <Sun className="w-4 h-4" />
                 ) : (
-                  <Settings className="w-4 h-4" />
+                  <Moon className="w-4 h-4" />
                 )}
               </Button>
             </div>

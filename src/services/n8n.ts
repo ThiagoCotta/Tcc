@@ -207,3 +207,35 @@ export async function sendPCConfigToN8N(payload: N8NPCConfigPayload): Promise<N8
     throw new Error(`Erro ao processar resposta do N8N: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
   }
 }
+
+// Busca de preços para fluxo iniciante (jogos)
+export interface BeginnerPriceItem {
+  component: string;
+  name: string;
+}
+
+export async function sendBeginnerPriceSearch(items: BeginnerPriceItem[]): Promise<any> {
+  const url = 'https://thiagocotta.app.n8n.cloud/webhook-test/Buscar-Preco-Hardware-Iniciante';
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(items),
+    // Timeout opcional pode ser adicionado se necessário
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Falha ao buscar preços (iniciante): ${response.status} ${text}`);
+  }
+
+  // Pode retornar array ou objeto; manter flexível
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
