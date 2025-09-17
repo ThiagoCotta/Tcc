@@ -48,7 +48,7 @@ const TypewriterEffect: React.FC<TypewriterEffectProps> = ({
         {showCursor && (
           <span 
             className={cn(
-              "inline-block w-0.5 h-5 bg-current ml-1 animate-pulse",
+              "inline-block w-2 h-5 bg-current ml-1 animate-pulse",
               isComplete ? "opacity-0" : "opacity-100"
             )}
           />

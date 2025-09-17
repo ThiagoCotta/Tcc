@@ -1,4 +1,5 @@
 import { supabaseConfig } from '@/config/supabase';
+import { getWebhookUrl } from '@/config/environment';
 
 export interface QuickSearchItem {
   id: string;
@@ -306,7 +307,7 @@ export const sendToN8NWebhook = async (hardware: QuickSearchItem): Promise<{ suc
       }
     };
 
-    const response = await fetch('https://thiagocotta.app.n8n.cloud/webhook-test/BuscaRapida', {
+    const response = await fetch(getWebhookUrl('QUICK_SEARCH'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

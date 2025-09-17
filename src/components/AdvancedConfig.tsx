@@ -9,6 +9,7 @@ import { sendPCConfigToN8N, N8NResponse, N8NResponseData } from '@/services/n8n'
 import { HardwareSelect } from '@/components/ui/hardware-select';
 import HardwarePopup from './HardwarePopup';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import HardwareResults from '@/components/ui/HardwareResults';
 
 interface AdvancedConfigProps {
   onConfigGenerated?: (config: any) => void;
@@ -227,69 +228,12 @@ const AdvancedConfig: React.FC<AdvancedConfigProps> = ({ onConfigGenerated }) =>
 
       {/* Resultados da configuração */}
       {hardwareData && !isLoading && (
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl text-green-800 dark:text-green-200">
-              <CheckCircle className="w-6 h-6" />
-              Resultados da Análise
-            </CardTitle>
-            <CardDescription className="text-green-700 dark:text-green-300">
-              Sua configuração foi analisada. Navegue pelas categorias para ver todas as opções disponíveis.
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <Tabs defaultValue="gpu" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
-                {hardwareButtons.map((hardware) => (
-                  <TabsTrigger 
-                    key={hardware.type} 
-                    value={hardware.type}
-                    disabled={!hardware.hasData}
-                    className="flex items-center gap-2"
-                  >
-                    {hardware.icon}
-                    <span className="hidden sm:inline">{hardware.name}</span>
-                    <span className="sm:hidden">{hardware.name.split(' ')[0]}</span>
-                    {hardware.hasData && (
-                      <Badge variant="secondary" className="ml-1 text-xs">
-                        {hardwareData.data?.[hardware.type]?.totalItems || 0}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              
-              {hardwareButtons.map((hardware) => (
-                <TabsContent key={hardware.type} value={hardware.type} className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        {hardware.icon}
-                        {hardware.name}
-                        <Badge variant="secondary">
-                          {hardwareData.data?.[hardware.type]?.totalItems || 0} opções
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <HardwarePopup
-                        isOpen={true}
-                        onClose={() => {}}
-                        hardwareType={hardware.type}
-                        hardwareName={hardware.name}
-                        icon={hardware.icon}
-                        hardwareData={hardwareData.data?.[hardware.type]}
-                        rawN8NData={rawN8NData}
-                        isEmbedded={true}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </CardContent>
-        </Card>
+        <HardwareResults
+          data={hardwareData.data}
+          rawData={rawN8NData}
+          title="Resultados da Análise"
+          subtitle="Sua configuração foi analisada. Navegue pelas categorias para ver todas as opções disponíveis."
+        />
       )}
     </div>
   );

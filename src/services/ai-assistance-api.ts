@@ -1,3 +1,5 @@
+import { getWebhookUrl } from '@/config/environment';
+
 // Interface para resposta da IA
 export interface AIAssistanceResponse {
   output: string;
@@ -23,7 +25,7 @@ export interface ProcessedAIResponse {
  */
 export async function getAIAssistance(primaryComponent: string): Promise<ProcessedAIResponse> {
   try {
-    const response = await fetch('https://thiagocotta.app.n8n.cloud/webhook-test/Assistencia-De-IA', {
+    const response = await fetch(getWebhookUrl('AI_ASSISTANCE'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,24 +39,43 @@ export async function getAIAssistance(primaryComponent: string): Promise<Process
       throw new Error(`Erro na requisição: ${response.status}`);
     }
 
-    const data: AIAssistanceResponse[] = await response.json();
-    
-    if (!data || data.length === 0 || !data[0].output) {
-      throw new Error('Resposta inválida da IA');
+    const raw = await response.json();
+
+    // Suporte a formatos:
+    // 1) Novo: Array|Objeto com .data (lista de items contendo {component,name} e opcional {Explicacao})
+    // 2) Antigo: Array com { output: "```json ... ```" }
+
+    // Caso seja objeto com data
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && (raw as any).data) {
+      const items = Array.isArray((raw as any).data) ? (raw as any).data : [];
+      const components = items.filter((i: any) => i.component && i.name) as AISuggestedComponent[];
+      const exp = items.find((i: any) => i.Explicacao)?.Explicacao as string | undefined;
+      return { success: true, components, message: exp };
     }
 
-    // Extrair JSON da string de resposta
-    const jsonMatch = data[0].output.match(/```json\n([\s\S]*?)\n```/);
-    if (!jsonMatch) {
-      throw new Error('Formato de resposta inválido da IA');
+    // Caso seja array (novo ou antigo)
+    if (Array.isArray(raw) && raw.length > 0) {
+      const first = raw[0];
+      // Novo formato
+      if (first && typeof first === 'object' && (first as any).data) {
+        const items = Array.isArray((first as any).data) ? (first as any).data : [];
+        const components = items.filter((i: any) => i.component && i.name) as AISuggestedComponent[];
+        const exp = items.find((i: any) => i.Explicacao)?.Explicacao as string | undefined;
+        return { success: true, components, message: exp };
+      }
+      // Antigo formato
+      if (first && typeof first === 'object' && (first as any).output) {
+        const data: AIAssistanceResponse[] = raw;
+        const jsonMatch = data[0].output.match(/```json\n([\s\S]*?)\n```/);
+        if (!jsonMatch) {
+          throw new Error('Formato de resposta inválido da IA');
+        }
+        const components: AISuggestedComponent[] = JSON.parse(jsonMatch[1]);
+        return { success: true, components };
+      }
     }
 
-    const components: AISuggestedComponent[] = JSON.parse(jsonMatch[1]);
-    
-    return {
-      success: true,
-      components: components
-    };
+    throw new Error('Formato de resposta da IA não reconhecido');
 
   } catch (error) {
     console.error('Erro ao chamar assistência de IA:', error);

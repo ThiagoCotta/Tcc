@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import HardwareResults from "@/components/ui/HardwareResults";
 import { Badge } from "@/components/ui/badge";
 import { Cpu, HardDrive, MemoryStick, Monitor, Search, Loader2, HelpCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -276,68 +277,14 @@ const PCConfigForm: React.FC<PCConfigFormProps> = ({ onNavigate }) => {
               </div>
             )}
 
-            {/* Sistema de Abas para Hardware */}
+            {/* Sistema de Abas para Hardware (unificado) */}
             {hardwareData && !isLoading && (
-              <div className="mt-8 space-y-6">
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold mb-2">
-                    Opções encontradas
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Navegue pelas categorias para ver todas as opções disponíveis
-                  </p>
-                </div>
-                
-                <Tabs defaultValue="gpu" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
-                    {hardwareButtons.map((hardware) => (
-                      <TabsTrigger 
-                        key={hardware.type} 
-                        value={hardware.type}
-                        disabled={!hardware.hasData}
-                        className="flex items-center gap-2"
-                      >
-                        {hardware.icon}
-                        <span className="hidden sm:inline">{hardware.name}</span>
-                        <span className="sm:hidden">{hardware.name.split(' ')[0]}</span>
-                        {hardware.hasData && (
-                          <Badge variant="secondary" className="ml-1 text-xs">
-                            {hardwareData.data?.[hardware.type]?.totalItems || 0}
-                          </Badge>
-                        )}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                  
-                  {hardwareButtons.map((hardware) => (
-                    <TabsContent key={hardware.type} value={hardware.type} className="mt-6">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            {hardware.icon}
-                            {hardware.name}
-                            <Badge variant="secondary">
-                              {hardwareData.data?.[hardware.type]?.totalItems || 0} opções
-                            </Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <HardwarePopup
-                            isOpen={true}
-                            onClose={() => {}}
-                            hardwareType={hardware.type}
-                            hardwareName={hardware.name}
-                            icon={hardware.icon}
-                            hardwareData={hardwareData.data?.[hardware.type]}
-                            rawN8NData={rawN8NData}
-                            isEmbedded={true}
-                          />
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              </div>
+              <HardwareResults
+                data={hardwareData.data}
+                rawData={rawN8NData}
+                title="Resultados da Análise"
+                subtitle="Navegue pelas categorias para ver todas as opções disponíveis"
+              />
             )}
          </form>
        </CardContent>

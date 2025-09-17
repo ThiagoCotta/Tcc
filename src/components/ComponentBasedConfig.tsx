@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { getAIAssistance, AISuggestedComponent } from '@/services/ai-assistance-api';
 import { fetchHardwareList } from '@/services/hardware-api';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
+import { convertN8NDataToFrontendFormat, sendIntermediatePriceSearch } from '@/services/n8n';
+import HardwareResults from '@/components/ui/HardwareResults';
 
 interface ComponentBasedConfigProps {
   onConfigGenerated?: (config: any) => void;
@@ -18,6 +20,8 @@ const ComponentBasedConfig: React.FC<ComponentBasedConfigProps> = ({ onConfigGen
   const [isLoading, setIsLoading] = useState(false);
   const [availableComponents, setAvailableComponents] = useState<SearchableSelectOption[]>([]);
   const [suggestedConfig, setSuggestedConfig] = useState<AISuggestedComponent[] | null>(null);
+  const [explanation, setExplanation] = useState<string>('');
+  const [unifiedData, setUnifiedData] = useState<any>(null);
   const { toast } = useToast();
 
   // Carregar componentes disponíveis apenas quando necessário
@@ -71,12 +75,32 @@ const ComponentBasedConfig: React.FC<ComponentBasedConfigProps> = ({ onConfigGen
 
     setIsLoading(true);
     setSuggestedConfig(null);
+    setExplanation('');
+    setUnifiedData(null);
     
     try {
       const response = await getAIAssistance(selectedComponent);
       
       if (response.success) {
         setSuggestedConfig(response.components);
+        // Explicação vinda do webhook (novo formato)
+        if (response.message) setExplanation(response.message);
+
+        // Montar payload para preços e chamar webhook intermediário
+        const items = response.components
+          .filter((c) => (c as any).component && (c as any).name)
+          .map((c) => ({ component: (c as any).component, name: (c as any).name }));
+
+        if (items.length > 0) {
+          try {
+            const priceResponse = await sendIntermediatePriceSearch(items as any);
+            const rawArray = Array.isArray(priceResponse) ? priceResponse : [priceResponse];
+            const converted = convertN8NDataToFrontendFormat(rawArray, false);
+            setUnifiedData(converted);
+          } catch (err) {
+            console.error('Erro ao buscar preços (intermediário):', err);
+          }
+        }
         onConfigGenerated?.(response.components);
         toast({
           title: "Configuração gerada!",
@@ -129,6 +153,7 @@ const ComponentBasedConfig: React.FC<ComponentBasedConfigProps> = ({ onConfigGen
 
   return (
     <div className="space-y-6">
+      {!suggestedConfig && (
       <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200 dark:border-yellow-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -194,58 +219,57 @@ const ComponentBasedConfig: React.FC<ComponentBasedConfigProps> = ({ onConfigGen
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* Resultado da configuração */}
+      {/* Explicação e Resultados (formato unificado, igual ao Iniciante) */}
       {suggestedConfig && suggestedConfig.length > 0 && (
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl text-green-800 dark:text-green-200">
-              <Bot className="w-6 h-6" />
-              Configuração Sugerida pela IA
-            </CardTitle>
-            <CardDescription className="text-green-700 dark:text-green-300">
-              Baseada no componente principal: <strong>{selectedComponent}</strong>
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {suggestedConfig.map((component, index) => (
-                <div key={index} className="p-4 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-3 mb-2">
-                    {getComponentIcon(component.component)}
-                    <div>
-                      <Label className="text-sm font-medium text-green-800 dark:text-green-200">
-                        {getComponentName(component.component)}
-                      </Label>
-                      <p className="text-sm font-semibold text-green-600">
-                        {component.name}
-                      </p>
-                    </div>
-                  </div>
-                  {component.reasoning && (
-                    <p className="text-xs text-green-700 dark:text-green-300 mt-2">
-                      {component.reasoning}
-                    </p>
-                  )}
+        <>
+          <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-purple-200 dark:border-purple-800">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Bot className="w-6 h-6" />
+                    Explicação da Configuração
+                  </CardTitle>
+                  <CardDescription>
+                    Baseada no componente principal: <strong>{selectedComponent}</strong>
+                  </CardDescription>
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-6 p-4 bg-white dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2 mb-2">
-                <Bot className="w-4 h-4 text-green-600" />
-                <span className="font-medium text-green-800 dark:text-green-200">
-                  Próximos Passos
-                </span>
+                <div className="hidden md:flex items-center gap-2">
+                  {['gpu','cpu','motherboard','ram'].map((key) => {
+                    const comp = suggestedConfig.find((c: any) => c.component === key);
+                    if (!comp) return null;
+                    const icon = key === 'gpu' ? <Monitor className="w-3.5 h-3.5" />
+                               : key === 'cpu' ? <Cpu className="w-3.5 h-3.5" />
+                               : key === 'ram' ? <MemoryStick className="w-3.5 h-3.5" />
+                               : <HardDrive className="w-3.5 h-3.5" />;
+                    return (
+                      <div key={key} className="flex items-center gap-1 px-2 py-1 rounded-md border bg-white/70 dark:bg-purple-950/30 text-xs">
+                        {icon}
+                        <span className="max-w-[140px] truncate">{comp.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <p className="text-sm text-green-700 dark:text-green-300">
-                Esta configuração foi otimizada para compatibilidade e performance. 
-                Você pode usar essas sugestões como base para sua configuração final.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {explanation && (
+                <p className="text-sm text-purple-800 dark:text-purple-200">{explanation}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {unifiedData?.data && (
+            <HardwareResults
+              data={unifiedData.data}
+              rawData={unifiedData.rawData}
+              title="Resultados da Análise"
+              subtitle="Navegue pelas categorias para ver todas as opções disponíveis"
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -16,13 +16,15 @@ export interface GameAIAssistanceResponse {
   error?: string;
 }
 
+import { getWebhookUrl } from '@/config/environment';
+
 export const sendGameAIAssistance = async (
   request: GameAIAssistanceRequest
 ): Promise<GameAIAssistanceResponse> => {
   try {
     console.log('Enviando requisição POST para N8N:', request);
     
-    const response = await fetch('https://thiagocotta.app.n8n.cloud/webhook-test/Assistencia-De-IA-Para-Jogos', {
+    const response = await fetch(getWebhookUrl('GAME_AI_ASSISTANCE'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

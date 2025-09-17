@@ -63,7 +63,7 @@ export interface N8NResponse {
 }
 
 // Função para converter dados do N8N para o formato esperado pelo frontend
-function convertN8NDataToFrontendFormat(n8nData: N8NResponseData[], considerReviews: boolean): N8NResponse {
+export function convertN8NDataToFrontendFormat(n8nData: N8NResponseData[], considerReviews: boolean): N8NResponse {
   const result: N8NResponse = {
     success: true,
     data: {},
@@ -156,10 +156,12 @@ export function convertRawDataToHardwareItems(
   return items;
 }
 
+import { getWebhookUrl } from '@/config/environment';
+
 export async function sendPCConfigToN8N(payload: N8NPCConfigPayload): Promise<N8NResponse> {
-  const url = "https://thiagocotta.app.n8n.cloud/webhook-test/pc-config";
+  const url = getWebhookUrl('PC_CONFIG');
   if (!url) {
-    throw new Error("VITE_N8N_WEBHOOK_URL não configurada no .env");
+    throw new Error("URL do webhook PC_CONFIG não configurada");
   }
 
   const response = await fetch(url, {
@@ -215,7 +217,7 @@ export interface BeginnerPriceItem {
 }
 
 export async function sendBeginnerPriceSearch(items: BeginnerPriceItem[]): Promise<any> {
-  const url = 'https://thiagocotta.app.n8n.cloud/webhook-test/Buscar-Preco-Hardware-Iniciante';
+  const url = getWebhookUrl('BEGINNER_PRICE');
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -232,6 +234,36 @@ export async function sendBeginnerPriceSearch(items: BeginnerPriceItem[]): Promi
   }
 
   // Pode retornar array ou objeto; manter flexível
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+// Busca de preços para fluxo intermediário
+export interface IntermediatePriceItem {
+  component: string;
+  name: string;
+}
+
+export async function sendIntermediatePriceSearch(items: IntermediatePriceItem[]): Promise<any> {
+  const url = getWebhookUrl('INTERMEDIATE_PRICE');
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(items),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Falha ao buscar preços (intermediário): ${response.status} ${text}`);
+  }
+
   const text = await response.text();
   try {
     return JSON.parse(text);

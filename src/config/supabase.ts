@@ -1,12 +1,12 @@
 // Configuração do Supabase
-// Substitua pelos seus valores reais
+import { ENV_CONFIG } from './environment';
 
 export const SUPABASE_CONFIG = {
   // URL do seu projeto Supabase
-  url: 'https://ftbzdhplddmxiezxzjqf.supabase.co',
+  url: ENV_CONFIG.SUPABASE.URL,
   
   // Chave pública (anon key) do Supabase
-  anonKey: 'sb_publishable_PrtXg6KJGAEkzevMa8rE0g_rI8qXkDE',
+  anonKey: ENV_CONFIG.SUPABASE.ANON_KEY,
   
   // Nomes das tabelas para cada componente
   tables: {
