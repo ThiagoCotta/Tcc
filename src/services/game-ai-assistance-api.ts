@@ -17,6 +17,7 @@ export interface GameAIAssistanceResponse {
 }
 
 import { getWebhookUrl } from '@/config/environment';
+import { fetchN8NWithTimeout } from '@/utils/fetchWithTimeout';
 
 export const sendGameAIAssistance = async (
   request: GameAIAssistanceRequest
@@ -24,15 +25,13 @@ export const sendGameAIAssistance = async (
   try {
     console.log('Enviando requisição POST para N8N:', request);
     
-    const response = await fetch(getWebhookUrl('GAME_AI_ASSISTANCE'), {
+    const response = await fetchN8NWithTimeout(getWebhookUrl('GAME_AI_ASSISTANCE'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
       body: JSON.stringify(request),
-      // Adicionar timeout e outras configurações
-      signal: AbortSignal.timeout(30000), // 30 segundos de timeout
     });
 
     console.log('Resposta recebida do N8N:', {

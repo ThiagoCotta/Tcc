@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import TabSystem from "./components/TabSystem";
+import { SearchProvider } from "./contexts/SearchContext";
+import SearchNotification from "./components/SearchNotification";
 
 const queryClient = new QueryClient();
 
@@ -14,7 +16,10 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <TabSystem />
+          <SearchProvider>
+            <TabSystem />
+            <SearchNotification />
+          </SearchProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

@@ -19,6 +19,41 @@ const QuickSearch: React.FC = () => {
   const [selectedHardwareType, setSelectedHardwareType] = useState<string>('');
   const { toast } = useToast();
 
+  // Carregar dados do histórico se disponível
+  useEffect(() => {
+    const historyData = localStorage.getItem('history-load-data');
+    if (historyData) {
+      try {
+        const data = JSON.parse(historyData);
+        if (data.source === 'quick-search' && data.loadedFromHistory) {
+          console.log('Carregando dados do histórico:', data);
+          
+          // Carregar hardware selecionado
+          if (data.request?.hardwareName) {
+            setSelectedHardware(data.request.hardwareName);
+            setSelectedHardwareType(data.request.hardwareType);
+          }
+          
+          // Carregar resultado
+          if (data.response) {
+            setSearchResults(data.response);
+            setHasSearched(true);
+          }
+          
+          // Limpar dados do localStorage
+          localStorage.removeItem('history-load-data');
+          
+          toast({
+            title: "Dados carregados do histórico",
+            description: "Busca restaurada com sucesso.",
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do histórico:', error);
+      }
+    }
+  }, [toast]);
+
 
   // Carregar todos os hardwares na inicialização
   const loadAllHardware = async () => {

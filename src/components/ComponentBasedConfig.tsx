@@ -10,6 +10,8 @@ import { fetchHardwareList } from '@/services/hardware-api';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { convertN8NDataToFrontendFormat, sendIntermediatePriceSearch } from '@/services/n8n';
 import HardwareResults from '@/components/ui/HardwareResults';
+import { HistoryService } from '@/services/history';
+import { useSearch } from '@/contexts/SearchContext';
 
 interface ComponentBasedConfigProps {
   onConfigGenerated?: (config: any) => void;
@@ -23,6 +25,49 @@ const ComponentBasedConfig: React.FC<ComponentBasedConfigProps> = ({ onConfigGen
   const [explanation, setExplanation] = useState<string>('');
   const [unifiedData, setUnifiedData] = useState<any>(null);
   const { toast } = useToast();
+  const { addSearch, completeSearch, errorSearch, getSearchById } = useSearch();
+
+  // Carregar dados do histórico se disponível
+  useEffect(() => {
+    const historyData = localStorage.getItem('history-load-data');
+    if (historyData) {
+      try {
+        const data = JSON.parse(historyData);
+        if (data.source === 'pc-builder' && data.title.includes('baseada em') && data.loadedFromHistory) {
+          console.log('Carregando dados do histórico:', data);
+          
+          // Carregar componente selecionado
+          if (data.request?.cpu) {
+            setSelectedComponent(data.request.cpu);
+          } else if (data.request?.gpu) {
+            setSelectedComponent(data.request.gpu);
+          }
+          
+          // Carregar resultado
+          if (data.response?.components) {
+            setSuggestedConfig(data.response.components);
+            if (data.response.explanation) {
+              setExplanation(data.response.explanation);
+            }
+            if (data.response.unifiedData) {
+              setUnifiedData(data.response.unifiedData);
+            }
+            onConfigGenerated?.(data.response.components);
+          }
+          
+          // Limpar dados do localStorage
+          localStorage.removeItem('history-load-data');
+          
+          toast({
+            title: "Dados carregados do histórico",
+            description: "Configuração restaurada com sucesso.",
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do histórico:', error);
+      }
+    }
+  }, [onConfigGenerated, toast]);
 
   // Carregar componentes disponíveis apenas quando necessário
   const loadComponents = async () => {
@@ -73,6 +118,31 @@ const ComponentBasedConfig: React.FC<ComponentBasedConfigProps> = ({ onConfigGen
       return;
     }
 
+    // Adicionar busca ao sistema persistente
+    const searchId = addSearch({
+      type: 'component-based',
+      title: `Configuração baseada em ${selectedComponent}`,
+      subtitle: 'IA analisando compatibilidade...',
+      onComplete: (result) => {
+        // Atualizar estado local também
+        setSuggestedConfig(result.components);
+        if (result.explanation) setExplanation(result.explanation);
+        if (result.unifiedData) setUnifiedData(result.unifiedData);
+        onConfigGenerated?.(result.components);
+        toast({
+          title: "Configuração gerada!",
+          description: `A IA sugeriu ${result.components.length} componentes para sua configuração.`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Ocorreu um erro ao obter sugestões da IA.",
+          variant: "destructive",
+        });
+      }
+    });
+
     setIsLoading(true);
     setSuggestedConfig(null);
     setExplanation('');
@@ -82,39 +152,87 @@ const ComponentBasedConfig: React.FC<ComponentBasedConfigProps> = ({ onConfigGen
       const response = await getAIAssistance(selectedComponent);
       
       if (response.success) {
-        setSuggestedConfig(response.components);
         // Explicação vinda do webhook (novo formato)
-        if (response.message) setExplanation(response.message);
+        let explanation = '';
+        if (response.message) explanation = response.message;
 
         // Montar payload para preços e chamar webhook intermediário
         const items = response.components
           .filter((c) => (c as any).component && (c as any).name)
           .map((c) => ({ component: (c as any).component, name: (c as any).name }));
 
+        let unifiedData = null;
         if (items.length > 0) {
           try {
             const priceResponse = await sendIntermediatePriceSearch(items as any);
             const rawArray = Array.isArray(priceResponse) ? priceResponse : [priceResponse];
-            const converted = convertN8NDataToFrontendFormat(rawArray, false);
-            setUnifiedData(converted);
+            unifiedData = convertN8NDataToFrontendFormat(rawArray, false);
           } catch (err) {
             console.error('Erro ao buscar preços (intermediário):', err);
           }
         }
+
+        // Atualizar estado local
+        setSuggestedConfig(response.components);
+        if (explanation) setExplanation(explanation);
+        if (unifiedData) setUnifiedData(unifiedData);
         onConfigGenerated?.(response.components);
+        
+        // Toast de sucesso
         toast({
           title: "Configuração gerada!",
           description: `A IA sugeriu ${response.components.length} componentes para sua configuração.`,
+        });
+        
+        // Completar busca com sucesso
+        completeSearch(searchId, {
+          components: response.components,
+          explanation,
+          unifiedData
+        });
+
+        // Salvar no histórico
+        HistoryService.add({
+          source: 'pc-builder',
+          title: `Configuração baseada em ${selectedComponent}`,
+          subtitle: `IA sugeriu ${response.components.length} componentes`,
+          request: {
+            cpu: response.components.find((c: any) => c.component === 'cpu')?.name || '',
+            gpu: response.components.find((c: any) => c.component === 'gpu')?.name || '',
+            motherboard: response.components.find((c: any) => c.component === 'motherboard')?.name || '',
+            ram: response.components.find((c: any) => c.component === 'ram')?.name || '',
+            considerReviews: false,
+          },
+          response: {
+            components: response.components,
+            explanation: response.message,
+            priceData: unifiedData
+          },
         });
       } else {
         throw new Error(response.message || "Erro ao obter sugestões da IA");
       }
     } catch (error) {
       console.error("Erro ao obter assistência da IA:", error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao obter sugestões da IA.",
-        variant: "destructive",
+      
+      // Completar busca com erro
+      errorSearch(searchId, error);
+      
+      // Registrar erro no histórico
+      HistoryService.add({
+        source: 'pc-builder',
+        title: `Erro - Configuração baseada em ${selectedComponent}`,
+        subtitle: 'Falha na assistência da IA',
+        request: {
+          cpu: '',
+          gpu: '',
+          motherboard: '',
+          ram: '',
+          considerReviews: false,
+        },
+        response: { 
+          error: error instanceof Error ? error.message : 'Erro desconhecido' 
+        },
       });
     } finally {
       setIsLoading(false);

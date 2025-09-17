@@ -14,6 +14,30 @@ const PCBuilderKnowledgeFlow: React.FC<PCBuilderKnowledgeFlowProps> = ({ onConfi
   const [userKnowledge, setUserKnowledge] = useState<'beginner' | 'intermediate' | 'advanced' | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<string>('');
 
+  // Carregar aba inicial do localStorage se disponível
+  React.useEffect(() => {
+    const historyData = localStorage.getItem('history-load-data');
+    if (historyData) {
+      try {
+        const data = JSON.parse(historyData);
+        if (data.loadedFromHistory && data.source === 'game-ai') {
+          setUserKnowledge('beginner');
+        } else if (data.loadedFromHistory && data.source === 'pc-builder') {
+          if (data.title.includes('Intermediário') || data.title.includes('intermediário')) {
+            setUserKnowledge('intermediate');
+          } else if (data.title.includes('Avançada') || data.title.includes('avançada')) {
+            setUserKnowledge('advanced');
+          } else if (data.title.includes('baseada em') || data.title.includes('componente')) {
+            setUserKnowledge('intermediate');
+            setSelectedComponent('cpu'); // Assumir CPU como padrão para componente
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar aba inicial:', error);
+      }
+    }
+  }, []);
+
   const handleKnowledgeSelect = (knowledge: 'beginner' | 'intermediate' | 'advanced') => {
     setUserKnowledge(knowledge);
   };

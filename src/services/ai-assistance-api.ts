@@ -1,4 +1,5 @@
 import { getWebhookUrl } from '@/config/environment';
+import { fetchN8NWithTimeout } from '@/utils/fetchWithTimeout';
 
 // Interface para resposta da IA
 export interface AIAssistanceResponse {
@@ -25,7 +26,9 @@ export interface ProcessedAIResponse {
  */
 export async function getAIAssistance(primaryComponent: string): Promise<ProcessedAIResponse> {
   try {
-    const response = await fetch(getWebhookUrl('AI_ASSISTANCE'), {
+    console.log('Enviando requisição para IA Assistência:', { primaryComponent });
+    
+    const response = await fetchN8NWithTimeout(getWebhookUrl('AI_ASSISTANCE'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

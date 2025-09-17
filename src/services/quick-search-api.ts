@@ -1,5 +1,6 @@
 import { supabaseConfig } from '@/config/supabase';
 import { getWebhookUrl } from '@/config/environment';
+import { fetchN8NWithTimeout } from '@/utils/fetchWithTimeout';
 
 export interface QuickSearchItem {
   id: string;
@@ -307,7 +308,9 @@ export const sendToN8NWebhook = async (hardware: QuickSearchItem): Promise<{ suc
       }
     };
 
-    const response = await fetch(getWebhookUrl('QUICK_SEARCH'), {
+    console.log('Enviando requisição para N8N Quick Search:', payload);
+    
+    const response = await fetchN8NWithTimeout(getWebhookUrl('QUICK_SEARCH'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

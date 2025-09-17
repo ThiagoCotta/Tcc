@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,8 @@ import { sendBeginnerPriceSearch, convertN8NDataToFrontendFormat } from '@/servi
 import TypewriterEffect from './TypewriterEffect';
 import { OfferResults } from '@/components/ui/offer-results';
 import HardwareResults from '@/components/ui/HardwareResults';
+import { HistoryService } from '@/services/history';
+import { useSearch } from '@/contexts/SearchContext';
 
 interface GameBasedConfigProps {
   onConfigGenerated?: (config: any) => void;
@@ -26,6 +28,48 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
   const [explanation, setExplanation] = useState('');
   const [showExplanation, setShowExplanation] = useState(false);
   const { toast } = useToast();
+  const { addSearch, completeSearch, errorSearch } = useSearch();
+
+  // Carregar dados do histórico se disponível
+  useEffect(() => {
+    const historyData = localStorage.getItem('history-load-data');
+    if (historyData) {
+      try {
+        const data = JSON.parse(historyData);
+        if (data.source === 'game-ai' && data.loadedFromHistory) {
+          console.log('Carregando dados do histórico:', data);
+          
+          // Carregar dados do jogo
+          if (data.request?.jogo) {
+            setGame(data.request.jogo);
+          }
+          if (data.request?.qualidade) {
+            setQualidade(data.request.qualidade);
+          }
+          
+          // Carregar resultado
+          if (data.response) {
+            setResult(data.response);
+            if (data.response.explanation) {
+              setExplanation(data.response.explanation);
+              setShowExplanation(true);
+            }
+            onConfigGenerated?.(data.response);
+          }
+          
+          // Limpar dados do localStorage
+          localStorage.removeItem('history-load-data');
+          
+          toast({
+            title: "Dados carregados do histórico",
+            description: "Configuração restaurada com sucesso.",
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do histórico:', error);
+      }
+    }
+  }, [onConfigGenerated, toast]);
 
   const handleNewSearch = () => {
     setIsLoading(false);
@@ -79,6 +123,33 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
       return;
     }
 
+    // Adicionar busca ao sistema persistente
+    const searchId = addSearch({
+      type: 'game-ai',
+      title: `Configuração para ${game}`,
+      subtitle: `Qualidade: ${qualidadeOptions.find(opt => opt.value === qualidade)?.label}`,
+      onComplete: (result) => {
+        // Atualizar estado local também
+        setResult(result);
+        if (result.explanation) {
+          setExplanation(result.explanation);
+          setShowExplanation(true);
+        }
+        onConfigGenerated?.(result);
+        toast({
+          title: "Configuração gerada!",
+          description: `Configuração otimizada para ${game} criada com sucesso.`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Erro ao gerar configuração para o jogo.",
+          variant: "destructive",
+        });
+      }
+    });
+
     setIsLoading(true);
     setResult(null);
     setExplanation('');
@@ -113,41 +184,94 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
         console.log('Dados processados:', processedData);
 
         // Iniciar busca de preços (iniciante) ANTES de exibir explicação
+        let priceData = null;
+        let unifiedData = null;
+        
         try {
           setIsSearchingPrices(true);
           const beginnerPayload = components.map((c: any) => ({ component: c.component, name: c.name }));
+          console.log('Buscando preços com payload:', beginnerPayload);
           const priceResponse = await sendBeginnerPriceSearch(beginnerPayload);
+          console.log('Resposta de preços recebida:', priceResponse);
+          
           // Converter formato do iniciante para o formato unificado usado no Avançado
           const rawArray = Array.isArray(priceResponse) ? priceResponse : [priceResponse];
-          const converted = convertN8NDataToFrontendFormat(rawArray, false);
-          setResult({ ...processedData, priceData: priceResponse, unifiedData: converted });
+          unifiedData = convertN8NDataToFrontendFormat(rawArray, false);
+          priceData = priceResponse;
+          
+          console.log('Dados de preços processados:', { priceData, unifiedData });
         } catch (err) {
           console.error('Erro ao buscar preços (iniciante):', err);
-          setResult(processedData);
+          // Continuar mesmo com erro na busca de preços
         } finally {
           setIsSearchingPrices(false);
         }
         
-        // Mostrar explicação com efeito de digitação enquanto preços são buscados em paralelo
+        // Definir resultado final com ou sem dados de preços
+        const finalResult = { 
+          ...processedData, 
+          priceData, 
+          unifiedData 
+        };
+        
+        console.log('Resultado final definido:', finalResult);
+        setResult(finalResult);
+        
+        // Atualizar estado local
         if (processedData.Explicacao) {
           setExplanation(processedData.Explicacao);
           setShowExplanation(true);
         }
+        onConfigGenerated?.(finalResult);
         
-        onConfigGenerated?.(processedData);
+        // Toast de sucesso
         toast({
           title: "Configuração gerada!",
           description: `Configuração otimizada para ${game} criada com sucesso.`,
+        });
+        
+        // Completar busca com sucesso
+        completeSearch(searchId, finalResult);
+
+        // Salvar no histórico
+        HistoryService.add({
+          source: 'game-ai',
+          title: `Configuração para ${game}`,
+          subtitle: `Qualidade: ${qualidadeOptions.find(opt => opt.value === qualidade)?.label}`,
+          request: {
+            jogo: game,
+            qualidade: qualidade,
+            nivel: qualidade === 'minimo' ? 'Iniciante' : qualidade === 'recomendado' ? 'Intermediário' : 'Avançado'
+          },
+          response: {
+            components: components,
+            explanation: processedData.Explicacao,
+            priceData: priceData,
+            unifiedData: unifiedData
+          },
         });
       } else {
         throw new Error(response.error || 'Erro ao gerar configuração');
       }
     } catch (error) {
       console.error('Erro ao gerar configuração baseada em jogos:', error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao gerar configuração para o jogo.",
-        variant: "destructive",
+      
+      // Completar busca com erro
+      errorSearch(searchId, error);
+      
+      // Registrar erro no histórico
+      HistoryService.add({
+        source: 'game-ai',
+        title: `Erro - Configuração para ${game}`,
+        subtitle: `Qualidade: ${qualidadeOptions.find(opt => opt.value === qualidade)?.label}`,
+        request: {
+          jogo: game,
+          qualidade: qualidade,
+          nivel: qualidade === 'minimo' ? 'Iniciante' : qualidade === 'recomendado' ? 'Intermediário' : 'Avançado'
+        },
+        response: { 
+          error: error instanceof Error ? error.message : 'Erro desconhecido' 
+        },
       });
     } finally {
       setIsLoading(false);
@@ -315,14 +439,52 @@ const GameBasedConfig: React.FC<GameBasedConfigProps> = ({ onConfigGenerated }) 
       {/* Card de configuração detalhada removido; resumo já incluso na explicação */}
 
       {/* Resultados do iniciante usando o mesmo componente unificado */}
-      {result?.unifiedData?.data && (
+      {result?.unifiedData?.data ? (
         <HardwareResults
           data={result.unifiedData.data}
           rawData={result.unifiedData.rawData}
           title="Resultados da Análise"
           subtitle="Navegue pelas categorias para ver todas as opções disponíveis"
         />
-      )}
+      ) : result?.components && result.components.length > 0 ? (
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl text-green-800 dark:text-green-200">
+              <Gamepad2 className="w-6 h-6" />
+              Componentes Recomendados
+            </CardTitle>
+            <CardDescription className="text-green-700 dark:text-green-300">
+              Configuração otimizada para {game}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {result.components.map((comp: any, index: number) => (
+                <div key={index} className="flex items-center gap-3 p-4 bg-white/50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                  {comp.component === 'gpu' && <Monitor className="w-5 h-5 text-green-600" />}
+                  {comp.component === 'cpu' && <Cpu className="w-5 h-5 text-green-600" />}
+                  {comp.component === 'ram' && <MemoryStick className="w-5 h-5 text-green-600" />}
+                  {comp.component === 'motherboard' && <HardDrive className="w-5 h-5 text-green-600" />}
+                  <div className="flex-1">
+                    <div className="font-medium text-sm text-green-900 dark:text-green-100">
+                      {comp.component === 'gpu' ? 'Placa de Vídeo' : 
+                       comp.component === 'cpu' ? 'Processador' :
+                       comp.component === 'ram' ? 'Memória RAM' :
+                       comp.component === 'motherboard' ? 'Placa Mãe' : comp.component}
+                    </div>
+                    <div className="text-sm text-green-700 dark:text-green-300">{comp.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Nota:</strong> A busca de preços não foi concluída. Os componentes foram selecionados com base na compatibilidade e performance para {game}.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 };

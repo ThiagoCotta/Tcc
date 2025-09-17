@@ -10,6 +10,7 @@ import { HardwareSelect } from '@/components/ui/hardware-select';
 import HardwarePopup from './HardwarePopup';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HardwareResults from '@/components/ui/HardwareResults';
+import { HistoryService } from '@/services/history';
 
 interface AdvancedConfigProps {
   onConfigGenerated?: (config: any) => void;
@@ -57,6 +58,22 @@ const AdvancedConfig: React.FC<AdvancedConfigProps> = ({ onConfigGenerated }) =>
       if (response.success) {
         setHardwareData(response);
         setRawN8NData(response.rawData || null);
+        
+        // Salvar no histórico
+        HistoryService.add({
+          source: 'pc-builder',
+          title: 'Configuração Avançada - Seleção Individual',
+          subtitle: [config.cpu, config.gpu, config.motherboard, config.ram].filter(Boolean).join(' | '),
+          request: {
+            cpu: config.cpu,
+            gpu: config.gpu,
+            motherboard: config.motherboard,
+            ram: config.ram,
+            considerReviews: false,
+          },
+          response,
+        });
+        
         onConfigGenerated?.(response);
         toast({
           title: "Configuração processada!",
@@ -67,6 +84,24 @@ const AdvancedConfig: React.FC<AdvancedConfigProps> = ({ onConfigGenerated }) =>
       }
     } catch (error) {
       console.error("Erro ao enviar configuração:", error);
+      
+      // Registrar erro no histórico
+      HistoryService.add({
+        source: 'pc-builder',
+        title: 'Erro - Configuração Avançada - Seleção Individual',
+        subtitle: [config.cpu, config.gpu, config.motherboard, config.ram].filter(Boolean).join(' | '),
+        request: {
+          cpu: config.cpu,
+          gpu: config.gpu,
+          motherboard: config.motherboard,
+          ram: config.ram,
+          considerReviews: false,
+        },
+        response: { 
+          error: error instanceof Error ? error.message : 'Erro desconhecido' 
+        },
+      });
+      
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao processar a configuração.",

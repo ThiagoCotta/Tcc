@@ -157,6 +157,7 @@ export function convertRawDataToHardwareItems(
 }
 
 import { getWebhookUrl } from '@/config/environment';
+import { fetchN8NWithTimeout } from '@/utils/fetchWithTimeout';
 
 export async function sendPCConfigToN8N(payload: N8NPCConfigPayload): Promise<N8NResponse> {
   const url = getWebhookUrl('PC_CONFIG');
@@ -164,7 +165,9 @@ export async function sendPCConfigToN8N(payload: N8NPCConfigPayload): Promise<N8
     throw new Error("URL do webhook PC_CONFIG não configurada");
   }
 
-  const response = await fetch(url, {
+  console.log('Enviando requisição para N8N PC Config:', payload);
+  
+  const response = await fetchN8NWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -218,14 +221,16 @@ export interface BeginnerPriceItem {
 
 export async function sendBeginnerPriceSearch(items: BeginnerPriceItem[]): Promise<any> {
   const url = getWebhookUrl('BEGINNER_PRICE');
-  const response = await fetch(url, {
+  
+  console.log('Enviando requisição para N8N Beginner Price Search:', items);
+  
+  const response = await fetchN8NWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
     body: JSON.stringify(items),
-    // Timeout opcional pode ser adicionado se necessário
   });
 
   if (!response.ok) {
@@ -250,7 +255,10 @@ export interface IntermediatePriceItem {
 
 export async function sendIntermediatePriceSearch(items: IntermediatePriceItem[]): Promise<any> {
   const url = getWebhookUrl('INTERMEDIATE_PRICE');
-  const response = await fetch(url, {
+  
+  console.log('Enviando requisição para N8N Intermediate Price Search:', items);
+  
+  const response = await fetchN8NWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
