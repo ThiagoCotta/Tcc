@@ -98,12 +98,12 @@ Cada tabela deve conter pelo menos o campo `nome` (string).
 O projeto integra com os seguintes webhooks N8N:
 
 - **PC Config**: `https://thiagoctt.app.n8n.cloud/webhook/pc-config`
+- **Preços Iniciante**: `https://thiagoctt.app.n8n.cloud/webhook/Buscar-Preco-Hardware-Iniciante`
   - Processa configurações de PC e retorna ofertas
 - **Assistência IA Jogos**: `https://thiagoctt.app.n8n.cloud/webhook/Assistencia-De-IA-Para-Jogos`
   - Gera configurações baseadas em jogos com IA
 - **Busca Rápida**: `https://thiagoctt.app.n8n.cloud/webhook/BuscaRapida`
   - Busca ofertas para hardware específico
-- **Preços Iniciante**: `https://thiagoctt.app.n8n.cloud/webhook/Buscar-Preco-Hardware-Iniciante`
   - Busca preços para componentes sugeridos pela IA
 
 ## 📁 Estrutura do Projeto
