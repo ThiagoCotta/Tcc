@@ -166,30 +166,3 @@ src/
 2. **Visualização**: Veja todas as buscas realizadas
 3. **Detalhes**: Clique em qualquer item para ver os dados completos do N8N
 4. **Limpeza**: Use o botão "Limpar" para remover o histórico
-
-## 🔧 Scripts Disponíveis
-
-- `npm run dev` - Inicia o servidor de desenvolvimento
-- `npm run build` - Gera a build de produção
-- `npm run preview` - Visualiza a build de produção
-- `npm run lint` - Executa o linter
-
-## 🤝 Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 📞 Suporte
-
-Para suporte ou dúvidas, abra uma issue no repositório do projeto.
-
----
-
-**Desenvolvido com ❤️ para facilitar a montagem de PCs**
